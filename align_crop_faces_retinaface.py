@@ -3,6 +3,7 @@ import sys
 import mxnet as mx
 from tqdm import tqdm
 import argparse
+import ast
 import cv2
 from retinaface.retinaface import RetinaFace
 from insightface.utils import face_align
@@ -15,17 +16,21 @@ def getArgs():
     parser.add_argument('--gpu', default=-1, type=int, help='gpu id， when the id == -1, use cpu')
     parser.add_argument('--face_size', type=int, default=112, help='the size of the face to save, the size x%2==0, and width equal height')
     parser.add_argument('--thresh', type=float, default=0.5, help='threshold for face detection')
+    parser.add_argument('--scales', type=str, default=[1.0], help='the scale to resize image before detecting face')
+    parser.add_argument('--draw_bbox_lmk', action='store_true', help='')
     args = parser.parse_args()
+
+    args.scales = ast.literal_eval(args.scales)
     return args
 
 
 def draw_bbox(img, bbox):
     result_img = img.copy()
-    x, y, width, height = bbox
+    x1, y1, x2, y2 = bbox
     color = (0, 255, 0)  # Green color
     thickness = 2
-    cv2.rectangle(result_img, (int(round(x)), int(round(y))),
-                              (int(round(x + width)), int(round(y + height))), color, thickness)
+    cv2.rectangle(result_img, (int(round(x1)), int(round(y1))),
+                              (int(round(x2)), int(round(y2))), color, thickness)
     return result_img
 
 
@@ -79,7 +84,7 @@ def crop_align_face(args):
             face_img = cv2.imread(file_path)
             
             print(f'Detecting face...')
-            ret = detector.detect(face_img, args.thresh, scales=[1.0], do_flip=False)
+            ret = detector.detect(face_img, args.thresh, args.scales, do_flip=False)
             
             if ret is None:
                 print('%s do not find face'%file_path)
@@ -96,12 +101,13 @@ def crop_align_face(args):
                 # points_ = points[i, :].reshape((2, 5)).T
                 points_ = points[i, :].reshape((5, 2))
 
-                face_img_copy = draw_bbox(face_img, bbox_)
-                face_img_copy = draw_lmks(face_img, points_)
-                face_name = '%s_bbox.png'%(file_name.split('.')[0])
-                file_path_bbox_save = os.path.join(output_root, face_name)
-                print(f'Saving {file_path_bbox_save}')
-                cv2.imwrite(file_path_bbox_save, face_img_copy)
+                if args.draw_bbox_lmk:
+                    face_img_copy = draw_bbox(face_img, bbox_)
+                    face_img_copy = draw_lmks(face_img_copy, points_)
+                    face_name = '%s_bbox.png'%(file_name.split('.')[0])
+                    file_path_bbox_save = os.path.join(output_root, face_name)
+                    print(f'Saving {file_path_bbox_save}')
+                    cv2.imwrite(file_path_bbox_save, face_img_copy)
 
                 face = face_align.norm_crop(face_img, landmark=points_, image_size=args.face_size)
 
