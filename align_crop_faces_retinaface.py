@@ -60,7 +60,7 @@ def crop_align_face(args):
         print('the input path is not exists!')
         sys.exit()
     if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
     if args.gpu == -1:
         ctx = mx.cpu()
