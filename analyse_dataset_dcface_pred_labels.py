@@ -23,6 +23,32 @@ def load_csv_as_list_of_dicts(file_path):
 
 
 def count_differences_by_combination(data):
+    num_samples = {
+        'Female_Asian': 0,
+        'Female_Black': 0,
+        'Female_Indian': 0,
+        'Female_Other': 0,
+        'Female_White': 0,
+        'Male_Asian': 0,
+        'Male_Black': 0,
+        'Male_Indian': 0,
+        'Male_Other': 0,
+        'Male_White': 0,
+    }
+
+    equalities = {
+        'Female_Asian': 0,
+        'Female_Black': 0,
+        'Female_Indian': 0,
+        'Female_Other': 0,
+        'Female_White': 0,
+        'Male_Asian': 0,
+        'Male_Black': 0,
+        'Male_Indian': 0,
+        'Male_Other': 0,
+        'Male_White': 0,
+    }
+
     differences = {
         'Female_Asian': 0,
         'Female_Black': 0,
@@ -44,14 +70,32 @@ def count_differences_by_combination(data):
         path_race = entry['path_race']
         path_label = entry['path_label']
 
-        if gender != path_gender:
-            # differences[f'{path_gender}_{path_race}'] += 1
-            differences[f'{gender}_{race}'] += 1
-        if race != path_race:
+        num_samples[f'{path_gender}_{path_race}'] += 1
+        # num_samples[f'{gender}_{race}'] += 1
+
+        if gender == path_gender:
+            # equalities[f'{path_gender}_{path_race}'] += 1
+            equalities[f'{gender}_{race}'] += 1
+        else:
             # differences[f'{path_gender}_{path_race}'] += 1
             differences[f'{gender}_{race}'] += 1
 
-    return differences
+        if race == path_race:
+            # equalities[f'{path_gender}_{path_race}'] += 1
+            equalities[f'{gender}_{race}'] += 1
+        else:
+            # differences[f'{path_gender}_{path_race}'] += 1
+            differences[f'{gender}_{race}'] += 1
+
+    return num_samples, equalities, differences
+
+
+def sum_values_dict(dict={}):
+    dict_keys = list(dict.keys())
+    sum = 0
+    for key in dict_keys:
+        sum += dict[key]
+    return sum
 
 
 def main():
@@ -76,8 +120,18 @@ def main():
                 break
     print()
 
-    diffs = count_differences_by_combination(dcface_data)
+    num_samples, equals, diffs = count_differences_by_combination(dcface_data)
+    total_samples = sum_values_dict(num_samples)
+    total_equals = sum_values_dict(equals)
+    total_diffs = sum_values_dict(diffs)
     print(f'len(dcface_data): {len(dcface_data)}')
+    print(f'total_samples: {total_samples}')
+    print(f'total_equals: {total_equals}')
+    print(f'total_diffs: {total_diffs}')
+    
+    print()
+    print('num_samples:', num_samples)
+    print('equals:', equals)
     print('diffs:', diffs)
 
 if __name__ == '__main__':
