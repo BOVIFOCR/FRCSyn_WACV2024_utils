@@ -9,6 +9,7 @@
 
 import os
 import sys
+import datetime
 import mxnet as mx
 from tqdm import tqdm
 import argparse
@@ -63,6 +64,16 @@ def get_all_files_in_path(folder_path, file_extension='.jpg'):
     return file_list
 
 
+def add_string_end_file(file_path, string_to_add):
+    string_to_add += '\n'
+    try:
+        with open(file_path, 'a') as file:
+            file.write(string_to_add)
+    except FileNotFoundError:
+        with open(file_path, 'w') as file:
+            file.write(string_to_add)
+
+
 def crop_align_face(args):
     input_dir = args.input_path.rstrip('/')
     output_dir = args.output_path.rstrip('/')
@@ -96,6 +107,11 @@ def crop_align_face(args):
     # print('len(all_img_paths):', len(all_img_paths))
     # sys.exit(0)
 
+    current_datetime = datetime.datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
+    file_no_face_detected = f'files_no_face_detected_thresh={args.thresh}_starttime={formatted_datetime}.txt'
+    path_file_no_face_detected = os.path.join(output_dir, file_no_face_detected)
+
     for i, input_img_path in enumerate(all_img_paths):
         print(f'{i}/{len(all_img_paths)}\nReading {input_img_path} ...')
         face_img = cv2.imread(input_img_path)
@@ -105,8 +121,11 @@ def crop_align_face(args):
 
         bbox, points = ret
         if bbox.shape[0] == 0:
-            print('%s do not find face'%input_img_path)
+            print(f'NO FACE DETECTED IN IMAGE \'{input_img_path}\'')
+            print(f'Adding path to file \'{path_file_no_face_detected}\' ...')
+            add_string_end_file(path_file_no_face_detected, input_img_path)
             count_no_find_face += 1
+            print('-------------')
             continue
 
         confidences = [bbox[idx, 4] for idx in range(bbox.shape[0])]
@@ -124,7 +143,7 @@ def crop_align_face(args):
             face_name = output_img_path.split('/')[-1].split('.')[0] + '.png'
             output_img_path = os.path.join(os.path.dirname(output_img_path), face_name)
             os.makedirs(os.path.dirname(output_img_path), exist_ok=True)
-            
+
             if args.draw_bbox_lmk:
                 face_img_copy = draw_bbox(face_img, bbox_)
                 face_img_copy = draw_lmks(face_img_copy, points_)
@@ -142,8 +161,10 @@ def crop_align_face(args):
 
     print('-------------------------------')
     print('Finished')
-    print('%d images crop successful!' % count_crop_images)
-    print('%d images do not crop successful!' % count_no_find_face)
+    print(f'{count_crop_images}/{len(all_img_paths)} images with faces detected.')
+    print(f'{count_no_find_face}/{len(all_img_paths)} images without faces.')
+    if count_no_find_face > 0:
+        print(f'   Check in \'{path_file_no_face_detected}\'')
 
 
 if __name__ == '__main__':
