@@ -41,6 +41,9 @@ def add_string_end_file(file_path, string_to_add):
 
 
 def check_corresponding_files(args):
+    args.path1 = args.path1.rstrip('/')
+    args.path2 = args.path2.rstrip('/')
+
     print(f'\nSearching \'{args.ext1}\' files with pattern \'{args.str_pattern}\' in path \'{args.path1}\'...')
     all_img_paths1 = get_all_files_in_path(args.path1, args.ext1, args.str_pattern)
     assert len(all_img_paths1) > 0, f'No files found with extention {args.ext1} in path \'{args.path1}\''

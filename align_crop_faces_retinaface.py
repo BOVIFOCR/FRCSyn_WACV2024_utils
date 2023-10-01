@@ -22,6 +22,7 @@ from insightface.utils import face_align
 
 def getArgs():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--file_list', type=str, default='', help='')
     parser.add_argument('--input_path', type=str, default='/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace', help='the dir your dataset of face which need to crop')
     parser.add_argument('--output_path', type=str, default='/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace_crop', help='the dir the cropped faces of your dataset where to save')
     parser.add_argument('--gpu', default=-1, type=int, help='gpu id， when the id == -1, use cpu')
@@ -88,6 +89,20 @@ def get_all_files_in_path(folder_path, file_extension='.jpg', pattern=''):
     return file_list
 
 
+def get_all_paths_from_file(file_path, pattern=''):
+    with open(file_path, 'r') as file:
+        all_lines = [line.strip() for line in file.readlines()]
+        valid_lines = []
+        for i, line in enumerate(all_lines):
+            if pattern in line:
+                valid_lines.append(line)
+        valid_lines.sort()
+
+        # print('all_lines:', all_lines)
+        # sys.exit(0)
+        return valid_lines
+
+
 def add_string_end_file(file_path, string_to_add):
     string_to_add += '\n'
     try:
@@ -102,7 +117,7 @@ def crop_align_face(args):
     input_dir = args.input_path.rstrip('/')
     output_dir = args.output_path.rstrip('/')
     if not os.path.exists(input_dir):
-        print('the input path is not exists!')
+        print(f'The input path doesn\'t exists: {input_dir}')
         sys.exit()
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
@@ -128,9 +143,15 @@ def crop_align_face(args):
         os.mkdir(output_dir)
 
     ext = '.jpg'
-    print(f'\nSearching \'{ext}\' files with pattern \'{args.str_pattern}\' in path \'{input_dir}\'...')
-    all_img_paths = get_all_files_in_path(input_dir, ext, args.str_pattern)
-    assert len(all_img_paths) > 0, f'No files found with extention {ext} in path \'{input_dir}\''
+    all_img_paths = []
+    if args.file_list != '' and os.path.isfile(args.file_list):
+        print(f'\nLoading paths with pattern \'{args.str_pattern}\' from file \'{args.file_list}\' ...')
+        all_img_paths = get_all_paths_from_file(args.file_list, args.str_pattern)
+    elif os.path.isdir(input_dir):
+        print(f'\nSearching \'{ext}\' files with pattern \'{args.str_pattern}\' in path \'{input_dir}\' ...')
+        all_img_paths = get_all_files_in_path(input_dir, ext, args.str_pattern)    
+
+    assert len(all_img_paths) > 0, f'No files found with extention \'{ext}\' and pattern \'{args.str_pattern}\' in input \'{input_dir}\''
     print(f'{len(all_img_paths)} files found')
     begin_parts, end_parts = get_parts_indices(all_img_paths, args.div)
     img_paths_part = all_img_paths[begin_parts[args.part]:end_parts[args.part]]
