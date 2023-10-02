@@ -51,8 +51,8 @@ def check_corresponding_files(args):
     # for i, img_path in enumerate(all_img_paths):
     #     print(f'img_path: {img_path}')
 
-    if args.save_list != '':
-        open(args.save_list, 'w')
+    # if args.save_list != '':
+    #     open(args.save_list, 'w')
 
     non_corresponding_files = 0
 
@@ -75,8 +75,8 @@ def check_corresponding_files(args):
 
     print('\n---------------------')
     print('Finished')
-    print(f'{non_corresponding_files}/{len(all_img_paths1)} non-corresponding files found!')
-    if args.save_list != '':
+    print(f'{non_corresponding_files} non-corresponding files found!')
+    if non_corresponding_files > 0 and args.save_list != '':
         print(f'    Paths saved in file \'{args.save_list}\'')
     print('')
 
