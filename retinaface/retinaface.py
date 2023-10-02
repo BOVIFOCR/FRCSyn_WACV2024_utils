@@ -285,7 +285,8 @@ class RetinaFace:
         for img in imgs:
             for im_scale in scales:
                 for flip in flips:
-                    if im_scale != 1.0:
+                    # if im_scale != 1.0:                                                                     # original
+                    if im_scale != 1.0 and (img.shape[0]*im_scale >= 1.0 and img.shape[1]*im_scale >= 1.0):   # Bernardo
                         im = cv2.resize(img,
                                         None,
                                         None,

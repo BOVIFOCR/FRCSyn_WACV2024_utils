@@ -234,6 +234,7 @@ def crop_align_face(args):
 
             elapsed_time = time.time() - start_time
             print(f'Elapsed time: {elapsed_time} seconds')
+            print(f'{count_no_find_face} images without faces (paths saved in \'{path_file_no_face_detected}\')')
             print('-------------')
             break   # take only the most confident face in image
 
