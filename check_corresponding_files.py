@@ -10,8 +10,9 @@ def getArgs():
     parser.add_argument('--path1', type=str, default='/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000', help='')
     parser.add_argument('--ext1', type=str, default='.jpg', help='')
     parser.add_argument('--str_pattern', default='', type=str, help='Substring to find and stop processing')
-    parser.add_argument('--path2', type=str, default='/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_112x112', help='')
+    parser.add_argument('--path2', type=str, default='/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112', help='')
     parser.add_argument('--ext2', type=str, default='.png', help='')
+    parser.add_argument('--check_3D_faces_MICA', action='store_true', help='')
     parser.add_argument('--save_list', type=str, default='', help='')
 
     args = parser.parse_args()
@@ -40,6 +41,17 @@ def add_string_end_file(file_path, string_to_add):
             file.write(string_to_add)
 
 
+def make_3D_pointcloud_MICA_path(img_path1, args):
+    img_path1_without_ext = '/'.join(img_path1.split('/')[:-1]) + '/' + img_path1.split('/')[-1].split('.')[0]   # remove extention (.jpg, .png)
+    pointcloud_mica_path = img_path1_without_ext.replace(args.path1, args.path2)
+    # target_file = 'mesh_centralized_nosetip_croped_radius=100.npy'
+    # target_file = 'mesh_centralized_nosetip_croped_radius=100.obj'
+    # target_file = 'render.jpg'
+    target_file = args.ext2
+    pointcloud_mica_path = os.path.join(pointcloud_mica_path, target_file)
+    return pointcloud_mica_path
+
+
 def check_corresponding_files(args):
     args.path1 = args.path1.rstrip('/')
     args.path2 = args.path2.rstrip('/')
@@ -57,10 +69,15 @@ def check_corresponding_files(args):
     non_corresponding_files = 0
 
     for i, img_path1 in enumerate(all_img_paths1):
-        img_path2 = img_path1.replace(args.path1, args.path2).replace(args.ext1, args.ext2)
-        print(f'\rChecking image {i+1}/{len(all_img_paths1)}', end='')
+        if args.check_3D_faces_MICA:
+            img_path2 = make_3D_pointcloud_MICA_path(img_path1, args)
+        else:
+            img_path2 = img_path1.replace(args.path1, args.path2).replace(args.ext1, args.ext2)
+        # print(f'\rChecking image {i+1}/{len(all_img_paths1)} - img_path1=\'{img_path1}\'    img_path2=\'{img_path2}\'', end='')
+        print(f'\rChecking image {i+1}/{len(all_img_paths1)} - img_path1=\'{img_path1}\'', end='')
         # print(f'img_path1: {img_path1}')
         # print(f'img_path2: {img_path2}')
+        # sys.exit(0)
 
         if not os.path.isfile(img_path2):
             non_corresponding_files += 1
@@ -70,7 +87,6 @@ def check_corresponding_files(args):
             if args.save_list != '':
                 print(f'    adding \'img_path1\' to file \'{args.save_list}\'')
                 add_string_end_file(args.save_list, img_path1)
-
             print('----------')
 
     print('\n---------------------')
