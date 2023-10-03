@@ -11,6 +11,7 @@ import os
 import sys
 import time
 import datetime
+import numpy as np
 import mxnet as mx
 from tqdm import tqdm
 import argparse
@@ -24,12 +25,14 @@ def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_list', type=str, default='', help='')
     parser.add_argument('--input_path', type=str, default='/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace', help='the dir your dataset of face which need to crop')
+    parser.add_argument('--input_ext', type=str, default='.jpg', help='')
     parser.add_argument('--output_path', type=str, default='/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace_crop', help='the dir the cropped faces of your dataset where to save')
     parser.add_argument('--gpu', default=-1, type=int, help='gpu id， when the id == -1, use cpu')
     parser.add_argument('--face_size', type=int, default=112, help='the size of the face to save, the size x%2==0, and width equal height')
     parser.add_argument('--thresh', type=float, default=0.5, help='threshold for face detection')
     parser.add_argument('--scales', type=str, default='[1.0]', help='the scale to resize image before detecting face')
     parser.add_argument('--draw_bbox_lmk', action='store_true', help='')
+    parser.add_argument('--force_lmk', action='store_true', help='')
 
     parser.add_argument('--str_begin', default='', type=str, help='Substring to find and start processing')
     parser.add_argument('--str_end', default='', type=str, help='Substring to find and stop processing')
@@ -113,6 +116,22 @@ def add_string_end_file(file_path, string_to_add):
             file.write(string_to_add)
 
 
+def get_generic_bbox_lmk(img):
+    confidence = 0.
+    bbox = np.array([[0., 0., img.shape[1]-1, img.shape[0]-1, confidence]])
+
+    landmarks_percent_face_not_det = np.array([[[0.341916071428571, 0.461574107142857],
+                                                [0.656533928571429, 0.459833928571429],
+                                                [0.500225,          0.640505357142857],
+                                                [0.370975892857143, 0.824691964285714],
+                                                [0.631516964285714, 0.823250892857143]]], dtype=np.float32)
+    landmarks_coords_face_not_det = np.zeros((landmarks_percent_face_not_det.shape), dtype=int)
+    landmarks_coords_face_not_det[:,:,0] = landmarks_percent_face_not_det[:,:,0] * img.shape[1]
+    landmarks_coords_face_not_det[:,:,1] = landmarks_percent_face_not_det[:,:,1] * img.shape[0]
+
+    return bbox, landmarks_coords_face_not_det
+
+
 def crop_align_face(args):
     input_dir = args.input_path.rstrip('/')
     output_dir = args.output_path.rstrip('/')
@@ -142,7 +161,7 @@ def crop_align_face(args):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    ext = '.jpg'
+    ext = args.input_ext
     all_img_paths = []
     if args.file_list != '' and os.path.isfile(args.file_list):
         print(f'\nLoading paths with pattern \'{args.str_pattern}\' from file \'{args.file_list}\' ...')
@@ -199,11 +218,15 @@ def crop_align_face(args):
             print(f'Adding path to file \'{path_file_no_face_detected}\' ...')
             add_string_end_file(path_file_no_face_detected, input_img_path)
             count_no_find_face += 1
-            
-            elapsed_time = time.time() - start_time
-            print(f'Elapsed time: {elapsed_time} seconds')
-            print('-------------')
-            continue
+
+            if args.force_lmk:
+                bbox, points = get_generic_bbox_lmk(face_img)
+                count_crop_images -= 1
+            else:
+                elapsed_time = time.time() - start_time
+                print(f'Elapsed time: {elapsed_time} seconds')
+                print('-------------')
+                continue
 
         confidences = [bbox[idx, 4] for idx in range(bbox.shape[0])]
         print('Confidences:', confidences)
