@@ -25,8 +25,12 @@ def getArgs():
 
 def load_classes_names_from_file(path_file):
     with open(path_file, 'r') as file:
-        class_names = [line.strip() for line in file.readlines()]
-    return class_names
+        lines = [line.strip() for line in file.readlines()]
+
+        if len(lines) > 0 and '/' in lines[0]:
+            for i in range(len(lines)):
+                lines[i] = lines[i].split('/')[-1]
+    return lines
 
 
 def concat_path_into_strings(path='', str_list=['']):
