@@ -31,6 +31,7 @@ def getArgs():
     parser.add_argument('--face_size', type=int, default=112, help='the size of the face to save, the size x%2==0, and width equal height')
     parser.add_argument('--thresh', type=float, default=0.5, help='threshold for face detection')
     parser.add_argument('--scales', type=str, default='[1.0]', help='the scale to resize image before detecting face')
+    parser.add_argument('--align_face', action='store_true', help='')
     parser.add_argument('--draw_bbox_lmk', action='store_true', help='')
     parser.add_argument('--force_lmk', action='store_true', help='')
 
@@ -72,8 +73,10 @@ def draw_bbox(img, bbox):
 
 
 def draw_lmks(img, lmks):
+    if not (type(lmks[0]) is list or type(lmks[0]) is np.ndarray):
+        lmks = [lmks]
     result_img = img.copy()
-    for l in range(lmks.shape[0]):
+    for l in range(len(lmks)):
         color = (0, 0, 255)
         if l == 0 or l == 3:
             color = (0, 255, 0)
@@ -130,6 +133,39 @@ def get_generic_bbox_lmk(img):
     landmarks_coords_face_not_det[:,:,1] = landmarks_percent_face_not_det[:,:,1] * img.shape[0]
 
     return bbox, landmarks_coords_face_not_det
+
+
+def crop_resize_face(face_img, bbox, face_size=None):
+    bbox = [round(value) for value in bbox]
+    face = face_img[bbox[1]:bbox[3],bbox[0]:bbox[2]]
+    if not face_size is None:
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        center = (face.shape[1]/2.0, face.shape[0]/2.0)
+        center_x, center_y = center
+        # face = draw_lmks(face, center)
+        # print('bbox_w:', bbox_w, '    bbox_h:', bbox_h)
+        # print('center:', center)
+        crop_size = min(w, h)
+        if center_x - crop_size // 2 < 0:
+            crop_size = min(crop_size, center_x * 2)
+        if center_y - crop_size // 2 < 0:
+            crop_size = min(crop_size, center_y * 2)
+        if center_x + crop_size // 2 > face.shape[1]:
+            crop_size = min(crop_size, (face.shape[1] - center_x) * 2)
+        if center_y + crop_size // 2 > face.shape[0]:
+            crop_size = min(crop_size, (face.shape[0] - center_y) * 2)
+        
+        crop_x1 = int(max(0, center_x - crop_size // 2))
+        crop_y1 = int(max(0, center_y - crop_size // 2))
+        crop_x2 = int(min(face.shape[1], crop_x1 + crop_size))
+        crop_y2 = int(min(face.shape[0], crop_y1 + crop_size))
+
+        cropped_image = face[crop_y1:crop_y2, crop_x1:crop_x2]
+
+        face = cv2.resize(cropped_image, (face_size, face_size))
+    # sys.exit(0)
+    return face
 
 
 def crop_align_face(args):
@@ -235,8 +271,11 @@ def crop_align_face(args):
             bbox_ = bbox[bbox_idx, 0:4]
             points_ = points[bbox_idx, :].reshape((5, 2))
 
-            print(f'Aligning and cropping to size {args.face_size}x{args.face_size} ...')
-            face = face_align.norm_crop(face_img, landmark=points_, image_size=args.face_size)
+            if args.align_face:
+                print(f'Aligning and cropping to size {args.face_size}x{args.face_size} ...')
+                face = face_align.norm_crop(face_img, landmark=points_, image_size=args.face_size)
+            else:
+                face = crop_resize_face(face_img, bbox_, args.face_size)
 
             # face_name = '%s.png'%(file_name.split('.')[0])
             output_img_path = input_img_path.replace(input_dir, output_dir)
