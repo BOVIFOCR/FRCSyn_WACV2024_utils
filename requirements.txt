@@ -10,7 +10,7 @@ flatbuffers==23.5.26
 fonttools==4.43.0
 graphviz==0.8.4
 humanfriendly==10.0
-idna==3.4
+idna==3.7
 imageio==2.31.4
 importlib-resources==6.1.0
 insightface==0.7.3
